@@ -2,63 +2,64 @@ package raftParticipants;
 
 import models.Node;
 import utils.CandidateReadThread;
-import utils.ConsensusUtils;
+import utils.LeaderElectionUtils;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import static java.lang.Thread.sleep;
+import static utils.LeaderElectionUtils.getPercentage;
 
 /**
  * Created by Valerii Volkov on 22.06.2016.
  */
 public class Candidate extends Node {
-    protected Map<String, Socket> nodesList;
-    protected List<String> nodesIpList;
-
     protected int allNodesSize;
     private int acceptedNodesSize = 0;
 
     public Candidate(String ip, int port) throws IOException, InterruptedException {
         super(ip, port);
-        createSocket();
+        start();
         requestVote();
-    }
-
-    public void requestVote() throws InterruptedException, IOException {
-        sleep(electionTimeout);
-        sendToAllConnectedNodes(ConsensusUtils.REQUEST_VOTE);
     }
 
     /**
      * Creates socket
      */
-    protected void createSocket() {
+    public void start() {
         try {
             ServerSocket serverSocket = new ServerSocket(port);
-            nodesList = new HashMap<>();
+            socketList = new HashMap<>();
             nodesIpList = new ArrayList<>();
-            System.out.println("Server is started");
+            System.out.println("Candidate is started");
             while (true) {
                 socket = serverSocket.accept();
                 nodesIpList.add(socket.getInetAddress().getHostAddress());
-                nodesList.put(socket.getRemoteSocketAddress().toString(), socket);
+                socketList.put(socket.getRemoteSocketAddress().toString(), socket);
 
                 ++allNodesSize;
 
                 createReadThread();
-                createWriteThread();
+
+                //TODO
+                //createWriteThread();
             }
         } catch (IOException io) {
             LOGGER.log(Level.SEVERE, "IO Exception", io);
         }
+    }
+
+    /**
+     * Sends request to other nodes and collects votes to become a leader
+     */
+    public void requestVote() throws InterruptedException, IOException {
+        sendToAllConnectedNodes(LeaderElectionUtils.REQUEST_VOTE);
     }
 
     /**
@@ -70,43 +71,13 @@ public class Candidate extends Node {
         candidateReadThread.start();
     }
 
-    protected void createWriteThread() {
-        Thread writeThread = new Thread() {
-            public void run() {
-                try {
-                    while (socket.isConnected()) {
-                        BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
-                        sleep(SLEEP_TIME);
-                        String typedMessage = inputReader.readLine();
-                        if (typedMessage != null && typedMessage.length() > 0) {
-                            sendToAllConnectedNodes(typedMessage);
-                            sleep(SLEEP_TIME);
-                        }
-                    }
-                } catch (UnsupportedEncodingException ue) {
-                    LOGGER.log(Level.SEVERE, "Unsupported Encoding Exception", ue);
-                } catch (UnknownHostException e) {
-                    LOGGER.log(Level.SEVERE, "Unknown Host Exception", e);
-                } catch (InterruptedException ie) {
-                    LOGGER.log(Level.SEVERE, "Interrupted Exception", ie);
-                } catch (IOException e) {
-                    LOGGER.log(Level.SEVERE, "IO Exception", e);
-                } finally {
-                    interrupt();
-                }
-            }
-        };
-        writeThread.setPriority(Thread.MAX_PRIORITY);
-        writeThread.start();
-    }
-
     /**
      * Sends messages to all clients
      *
      * @param message
      */
     public void sendToAllConnectedNodes(String message) throws IOException {
-        for (Map.Entry<String, Socket> entry : nodesList.entrySet()) {
+        for (Map.Entry<String, Socket> entry : socketList.entrySet()) {
             OutputStream outputStream = entry.getValue().getOutputStream();
             try {
                 outputStream.write(message.getBytes(CHARSET));
@@ -119,7 +90,7 @@ public class Candidate extends Node {
     /**
      * Returns the list of all connected clients
      */
-    public List<String> getClients() {
+    public List<String> getConnectedNodes() {
         return nodesIpList;
     }
 
@@ -129,8 +100,22 @@ public class Candidate extends Node {
      * @param socket
      * @throws IOException
      */
-    public void closeClient(Socket socket) throws IOException {
+    public void close() throws IOException {
         socket.close();
+    }
+
+    /**
+     * Convert to candidate
+     */
+    public Leader toLeader() throws IOException, InterruptedException {
+        return new Leader(ip, port);
+    }
+
+    /**
+     * Is candidate chosen to be a leader
+     */
+    public boolean isLeader() {
+        return (getPercentage(this.getAcceptedNodesSize(), this.getAllNodesSize()) > 0.5);
     }
 
     public final void addAcceptedVote() {

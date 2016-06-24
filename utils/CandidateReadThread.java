@@ -41,9 +41,9 @@ public class CandidateReadThread extends Thread {
                     }
                 } else {
                     //If there is at least one connected client then notify these clients
-                    if (!candidate.getClients().isEmpty()) {
+                    if (!candidate.getConnectedNodes().isEmpty()) {
                         notify();
-                        candidate.closeClient(socket);
+                        candidate.close();
                     }
                 }
             } catch (SocketException se) {
@@ -59,7 +59,7 @@ public class CandidateReadThread extends Thread {
     }
 
     public void handleVote(String s) {
-        if (s.equals(ConsensusUtils.VOTE)) {
+        if (s.equals(LeaderElectionUtils.VOTE)) {
             candidate.addAcceptedVote();
         }
     }

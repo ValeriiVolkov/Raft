@@ -1,10 +1,7 @@
-import raftParticipants.Candidate;
-import raftParticipants.Leader;
-
-import static utils.ConsensusUtils.getPercentage;
+import raftParticipants.Follower;
 
 /**
- * Created by Valerii Volkov on 23.06.2016.
+ * Created by Valerii Volkov
  */
 public class Main {
     private String nameOfContainer;
@@ -17,17 +14,18 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         if (args.length < 2) {
-            System.out.println("Two parameters: 1st - for ip, 2nd - for port are needed");
+            System.out.println("Two parameters: 1st - for port, 2nd-... - for ips are needed");
         } else {
             try {
-                Candidate candidate = new Candidate(args[0], Integer.valueOf(args[1]));
+                Follower node = new Follower(args[1], Integer.valueOf(args[0]));
+                node.start();
 
-                while (getPercentage(candidate.getAcceptedNodesSize(), candidate.getAllNodesSize()) < 0.5f)
-                {
-                    candidate.requestVote();
+                LeaderElection leaderElection;
+                //If there are already other nodes within the system then
+                if (args.length > 2) {
+                    leaderElection = new LeaderElection(args);
+                    leaderElection.start();
                 }
-
-                Leader leader = new Leader(args[0], Integer.valueOf(args[1]));
             } catch (NumberFormatException e) {
                 System.out.println("Wrong input for the port");
             }

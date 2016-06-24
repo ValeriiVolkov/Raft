@@ -41,16 +41,16 @@ public class LeaderReadThread extends Thread {
                     synchronized (message) {
                         if(leader.handleStop(message))
                         {
-                            leader.sendToAllConnectedNodes(ConsensusUtils.LEADER_QUITS);
+                            leader.sendToAllConnectedNodes(LeaderElectionUtils.LEADER_QUITS);
                         }
 
                         leader.sendToAllConnectedNodes(message);
                     }
                 } else {
-                    //If there is at least one connected client then notify these clients
-                    if (!leader.getClients().isEmpty()) {
+                    //If there is at least one connected node then notify these clients
+                    if (!leader.getConnectedNodes().isEmpty()) {
                         notify();
-                        leader.closeClient(socket);
+                        leader.close();
                     }
                 }
             } catch (SocketException se) {

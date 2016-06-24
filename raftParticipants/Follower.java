@@ -17,13 +17,16 @@ import static java.lang.Thread.sleep;
 public class Follower extends Node {
     public Follower(String ip, int port) throws IOException, InterruptedException {
         super(ip, port);
-        createSocket();
     }
 
-    public void createSocket() throws IOException, InterruptedException {
+    public void start() throws IOException, InterruptedException {
         socket = new Socket(ip, port);
         inStream = socket.getInputStream();
         outStream = socket.getOutputStream();
+
+        //Send log file after a first connection
+        outStream.write(getLog().toString().getBytes(CHARSET));
+
         createReadThread();
         createWriteThread();
     }
@@ -31,7 +34,7 @@ public class Follower extends Node {
     /**
      * Creates read for getting messages from sender
      */
-    public void createReadThread() {
+    private void createReadThread() {
         while (socket.isConnected()) {
             try {
                 byte[] readBuffer = new byte[SIZE_OF_BUFFER];
@@ -54,7 +57,7 @@ public class Follower extends Node {
     /**
      * Creates write for sending messages to receiver
      */
-    public void createWriteThread() {
+    private void createWriteThread() {
         while (socket.isConnected()) {
             try {
                 BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
@@ -72,5 +75,19 @@ public class Follower extends Node {
                 LOGGER.log(Level.SEVERE, "Interrupted Exception", ie);
             }
         }
+    }
+
+    /**
+     * Makes election time start
+     */
+    public void startElectionProcess(){
+        Thread electionThread = new Thread() {
+            public void run(String str) {
+                for(int i = 0; i < electionTimeout; ++i){
+                    reduceRemainingElectionTimeout();
+                }
+            }
+        };
+        electionThread.start();
     }
 }
