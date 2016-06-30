@@ -1,11 +1,13 @@
-package models;
+package raftModels;
 
-import java.io.IOException;
+import utils.RaftUtils;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.logging.Logger;
 
 /**
@@ -15,11 +17,8 @@ public class Node {
     protected Map<String, Socket> socketList;
     protected List<String> nodesIpList;
 
-    protected static final int electionTimeout = 30;//time a follower waits until becoming a candidate
-    protected static final int heartbeatTimeout = 0;
-
+    protected int electionTimeout;//time a follower waits until becoming a candidate
     private int remainingElectionTimeout = electionTimeout;//time a follower waits until becoming a candidate
-    private int remainingHeartbeatTimeout = heartbeatTimeout;
 
     protected Socket socket;
     protected InputStream inStream;
@@ -33,17 +32,33 @@ public class Node {
     protected String ip;
     protected int port;
 
-    private StringBuilder log;
+    protected StringBuilder log;
 
-    public Node(String ip, int port) throws IOException, InterruptedException {
+    public Node(String ip, int port) {
         log = new StringBuilder();
 
         this.ip = ip;
         this.port = port;
     }
 
+    public Node(int port) {
+        Random random = new Random();
+        electionTimeout = random.nextInt(30);
+
+        log = new StringBuilder();
+        this.port = port;
+    }
+
     public void receiveMessage(String s) {
-        log.append(s);
+        String[] splittedMessage = s.split("||");
+        String action = splittedMessage[0];
+        String value = splittedMessage[1];
+
+        if (action.equals(RaftUtils.DELETE_ENTRY)) {
+            log.deleteCharAt(log.length() - 1);
+        } else {
+            log.append(value);
+        }
     }
 
     public String getIp() {
@@ -58,9 +73,8 @@ public class Node {
         return log;
     }
 
-    public void reduceRemainingElectionTimeout()
-    {
-        if(remainingElectionTimeout == 0){
+    public void reduceRemainingElectionTimeout() {
+        if (remainingElectionTimeout == 0) {
             remainingElectionTimeout = electionTimeout;
         }
         remainingElectionTimeout--;
@@ -68,5 +82,9 @@ public class Node {
 
     public int getRemainingElectionTimeout() {
         return remainingElectionTimeout;
+    }
+
+    public void addEntry(String s) {
+        log.append(s);
     }
 }

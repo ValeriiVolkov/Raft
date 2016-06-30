@@ -1,6 +1,6 @@
 package utils;
 
-import raftParticipants.Candidate;
+import raftModels.Candidate;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,6 +35,7 @@ public class CandidateReadThread extends Thread {
                     byte[] arrayBytes = new byte[size];
                     System.arraycopy(readBuffer, 0, arrayBytes, 0, size);
                     String message = new String(arrayBytes, CHARSET);
+                    candidate.receiveMessage(message);
 
                     synchronized (message) {
                         handleVote(message);
@@ -59,7 +60,7 @@ public class CandidateReadThread extends Thread {
     }
 
     public void handleVote(String s) {
-        if (s.equals(LeaderElectionUtils.VOTE)) {
+        if (s.equals(RaftUtils.VOTE)) {
             candidate.addAcceptedVote();
         }
     }

@@ -1,8 +1,8 @@
-package raftParticipants;
+package raftModels;
 
-import models.Node;
 import utils.CandidateReadThread;
-import utils.LeaderElectionUtils;
+import utils.RaftUtils;
+import utils.StringChangeListener;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -14,27 +14,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import static utils.LeaderElectionUtils.getPercentage;
+import static utils.RaftUtils.getPercentage;
 
 /**
  * Created by Valerii Volkov on 22.06.2016.
  */
-public class Candidate extends Node {
+public class Candidate extends Follower {
+    private StringChangeListener stringChangeListener;
     protected int allNodesSize;
     private int acceptedNodesSize = 0;
 
     public Candidate(String ip, int port) throws IOException, InterruptedException {
         super(ip, port);
-        start();
-        requestVote();
+        startElectionTime();
     }
 
     /**
      * Creates socket
      */
-    public void start() {
+    public void start() throws InterruptedException {
+        System.out.println("Candidate starts...");
         try {
             ServerSocket serverSocket = new ServerSocket(port);
+            createReadThread();
             socketList = new HashMap<>();
             nodesIpList = new ArrayList<>();
             System.out.println("Candidate is started");
@@ -42,13 +44,8 @@ public class Candidate extends Node {
                 socket = serverSocket.accept();
                 nodesIpList.add(socket.getInetAddress().getHostAddress());
                 socketList.put(socket.getRemoteSocketAddress().toString(), socket);
-
+                requestVote(socketList.get(socket.getRemoteSocketAddress().toString()));
                 ++allNodesSize;
-
-                createReadThread();
-
-                //TODO
-                //createWriteThread();
             }
         } catch (IOException io) {
             LOGGER.log(Level.SEVERE, "IO Exception", io);
@@ -58,8 +55,16 @@ public class Candidate extends Node {
     /**
      * Sends request to other nodes and collects votes to become a leader
      */
+    public void requestVote(Socket socket) throws InterruptedException, IOException {
+        socketList.put(socket.getInetAddress().getHostName(), socket);
+        sendToAllConnectedNodes(RaftUtils.REQUEST_VOTE);
+    }
+
+    /**
+     * Sends request to other nodes and collects votes to become a leader
+     */
     public void requestVote() throws InterruptedException, IOException {
-        sendToAllConnectedNodes(LeaderElectionUtils.REQUEST_VOTE);
+        sendToAllConnectedNodes(RaftUtils.REQUEST_VOTE);
     }
 
     /**
@@ -97,7 +102,6 @@ public class Candidate extends Node {
     /**
      * Closes a socket
      *
-     * @param socket
      * @throws IOException
      */
     public void close() throws IOException {

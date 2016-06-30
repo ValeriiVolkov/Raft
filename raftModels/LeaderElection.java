@@ -1,6 +1,4 @@
-import raftParticipants.Candidate;
-import raftParticipants.Follower;
-import raftParticipants.Leader;
+package raftModels;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -9,14 +7,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static utils.LeaderElectionUtils.LEADER_ELECTED;
-import static utils.LeaderElectionUtils.getCandidate;
+import static utils.RaftUtils.LEADER_ELECTED;
+import static utils.RaftUtils.getCandidate;
 
 /**
  * Created by Valerii Volkov
  */
 public class LeaderElection {
-    private Map<String, Socket> socketList;
+    private List<Socket> socketList;
     private Map<String, Follower> followerList;
     private List<String> nodesIpList;
     private int port;
@@ -28,27 +26,25 @@ public class LeaderElection {
     /**
      * Constructor adds nodes, which are already within a system
      */
-    public LeaderElection(String[] ips) {
-        socketList = new HashMap<>();
+    public LeaderElection(List<Socket> sockets) {
+        socketList = new ArrayList<>();
         followerList = new HashMap<>();
         nodesIpList = new ArrayList<>();
 
-        port = Integer.valueOf(ips[0]);
-        for (int i = 2; i < ips.length; ++i) {
-            nodesIpList.add(ips[i]);
-            try {
-                followerList.put(ips[i], new Follower(ips[i], port));
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        port = sockets.get(0).getPort();
+        for (int i = 0; i < sockets.size(); ++i) {
+            nodesIpList.add(sockets.get(i).getInetAddress().getHostAddress());
+            socketList.add(sockets.get(i));
+            Follower follower = new Follower(sockets.get(i).getInetAddress().getHostAddress(), port);
+            follower.startElectionTime();
+            followerList.put(sockets.get(i).getInetAddress().getHostAddress(), follower);
         }
     }
 
     public void start() throws IOException, InterruptedException {
         System.out.println("Leader election is started...");
         Candidate candidate = getCandidate(followerList);
+        candidate.start();
 
         for (int i = 0; i < requestVoteMaxAttempts; ++i) {
             if (candidate.isLeader()) {
@@ -71,11 +67,9 @@ public class LeaderElection {
     }
 
     public boolean isLeaderElected() {
-        for(Map.Entry follower : followerList.entrySet())
-        {
+        for (Map.Entry follower : followerList.entrySet()) {
             Follower f = (Follower) follower.getValue();
-            if(f.getLog().indexOf(LEADER_ELECTED) != -1)
-            {
+            if (f.getLog().indexOf(LEADER_ELECTED) != -1) {
                 isLeaderElected = true;
                 return isLeaderElected;
             }

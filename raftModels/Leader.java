@@ -1,13 +1,11 @@
-package raftParticipants;
+package raftModels;
 
-import utils.LeaderElectionUtils;
 import utils.LeaderReadThread;
+import utils.RaftUtils;
+import utils.StringChangeListener;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.ServerSocket;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Level;
@@ -16,8 +14,9 @@ import java.util.logging.Level;
  * Created by Valerii Volkov on 20.06.2016.
  */
 public class Leader extends Candidate {
-    private StringBuilder log;
+    private StringChangeListener stringChangeListener;
     private boolean stopped = false;
+    private static final int heartbeatTimeout = 0;//time period, between which a leader sends the message to assure that other nodes are alive
 
     public Leader(String ip, int port) throws IOException, InterruptedException {
         super(ip, port);
@@ -27,6 +26,7 @@ public class Leader extends Candidate {
      * Creates socket
      */
     public void start() {
+        System.out.println("Leader starts");
         try {
             ServerSocket serverSocket = new ServerSocket(port);
             socketList = new HashMap<>();
@@ -56,7 +56,11 @@ public class Leader extends Candidate {
     }
 
     protected void createWriteThread() {
-        Thread writeThread = new Thread() {
+        if(socket.isConnected())
+        {
+            stringChangeListener = new StringChangeListener(log, outStream);
+        }
+        /*Thread writeThread = new Thread() {
             public void run() {
                 try {
                     while (socket.isConnected()) {
@@ -80,7 +84,7 @@ public class Leader extends Candidate {
             }
         };
         writeThread.setPriority(Thread.MAX_PRIORITY);
-        writeThread.start();
+        writeThread.start();*/
     }
 
     /**
@@ -89,7 +93,7 @@ public class Leader extends Candidate {
      * @param message
      */
     public boolean handleStop(String message) {
-        if (message.toUpperCase().equals(LeaderElectionUtils.LEADER_QUITS)) {
+        if (message.toUpperCase().equals(RaftUtils.LEADER_QUITS)) {
             stopped = true;
             return stopped;
         }

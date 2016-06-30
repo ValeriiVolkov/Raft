@@ -1,6 +1,6 @@
 package utils;
 
-import raftModels.Leader;
+import raftModels.Follower;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,18 +12,17 @@ import java.util.logging.Logger;
 /**
  * Created by Valerii Volkov
  */
-public class LeaderReadThread extends Thread {
+public class FollowerReadThread extends Thread {
     private Socket socket;
     private InputStream inputStream;
-    private Leader leader;
+    private Follower follower;
     protected static final String CHARSET = "UTF-8";
 
-    private Logger LOGGER = Logger.getLogger("LeaderReadThread");
+    private Logger LOGGER = Logger.getLogger("FollowerReadThread");
 
-    public LeaderReadThread(Socket socket, Leader leader)
-    {
+    public FollowerReadThread(Socket socket, Follower follower) {
         this.socket = socket;
-        this.leader = leader;
+        this.follower = follower;
     }
 
     public void run() {
@@ -37,23 +36,7 @@ public class LeaderReadThread extends Thread {
                     byte[] arrayBytes = new byte[size];
                     System.arraycopy(readBuffer, 0, arrayBytes, 0, size);
                     String message = new String(arrayBytes, CHARSET);
-                    leader.receiveMessage(message);
-
-                    synchronized (message) {
-                        if(leader.handleStop(message))
-                        {
-                            leader.sendToAllConnectedNodes(RaftUtils.LEADER_QUITS);
-                            interrupt();
-                            return;
-                        }
-                        leader.sendToAllConnectedNodes(message);
-                    }
-                } else {
-                    //If there is at least one connected node then notify these clients
-                    if (!leader.getConnectedNodes().isEmpty()) {
-                        notify();
-                        leader.close();
-                    }
+                    follower.receiveMessage(message);
                 }
             } catch (SocketException se) {
                 //Catched, however, not logged to eliminate excess output in the console
