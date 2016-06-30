@@ -1,6 +1,7 @@
-package utils;
+package communicationThreads;
 
-import raftModels.Leader;
+import raftModels.Follower;
+import utils.RaftUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,18 +13,17 @@ import java.util.logging.Logger;
 /**
  * Created by Valerii Volkov
  */
-public class LeaderReadThread extends Thread {
+public class NodeReadThread extends Thread {
     private Socket socket;
     private InputStream inputStream;
-    private Leader leader;
+    private Follower follower;
     protected static final String CHARSET = "UTF-8";
 
-    private Logger LOGGER = Logger.getLogger("LeaderReadThread");
+    private Logger LOGGER = Logger.getLogger("FollowerReadThread");
 
-    public LeaderReadThread(Socket socket, Leader leader)
-    {
+    public NodeReadThread(Socket socket, Follower follower) {
         this.socket = socket;
-        this.leader = leader;
+        this.follower = follower;
     }
 
     public void run() {
@@ -37,22 +37,18 @@ public class LeaderReadThread extends Thread {
                     byte[] arrayBytes = new byte[size];
                     System.arraycopy(readBuffer, 0, arrayBytes, 0, size);
                     String message = new String(arrayBytes, CHARSET);
-                    leader.receiveMessage(message);
+                    follower.receiveMessage(message);
+
+                    System.out.println(message);
 
                     synchronized (message) {
-                        if(leader.handleStop(message))
+                        handleVote(message);
+                        if(handleStop(message))
                         {
-                            leader.sendToAllConnectedNodes(RaftUtils.LEADER_QUITS);
+                            follower.sendToAllConnectedNodes(RaftUtils.LEADER_QUITS);
                             interrupt();
                             return;
                         }
-                        leader.sendToAllConnectedNodes(message);
-                    }
-                } else {
-                    //If there is at least one connected node then notify these clients
-                    if (!leader.getConnectedNodes().isEmpty()) {
-                        notify();
-                        leader.close();
                     }
                 }
             } catch (SocketException se) {
@@ -65,5 +61,20 @@ public class LeaderReadThread extends Thread {
                 interrupt();
             }
         }
+    }
+
+    public void handleVote(String s) throws IOException {
+        if (s.contains(RaftUtils.REQUEST_VOTE)) {
+            socket.getOutputStream().write(RaftUtils.VOTE.getBytes(CHARSET));
+        } else if (s.contains(RaftUtils.VOTE)) {
+            follower.addAcceptedVote();
+        }
+    }
+
+    public boolean handleStop(String message) {
+        if (message.toUpperCase().contains(RaftUtils.LEADER_QUITS)) {
+            System.out.println("Leaders quits");
+        }
+        return false;
     }
 }

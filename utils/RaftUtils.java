@@ -5,8 +5,6 @@ import raftModels.Follower;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Created by Valerii Volkov on 22.06.2016.
@@ -24,6 +22,11 @@ public class RaftUtils {
      * Returns a proportion (n out of a total) as a percentage, in a float.
      */
     public static float getPercentage(int n, int total) {
+        if(total == 0)
+        {
+            return 100;
+        }
+
         float proportion = ((float) n) / ((float) total);
         return proportion * 100;
     }
@@ -31,19 +34,22 @@ public class RaftUtils {
     /**
      * Returns a follower with the smaller election timeout
      */
-    public static Candidate getCandidate(Map<String, Follower> followers) throws IOException, InterruptedException {
-        int[] electionTimeouts = new int[followers.size()];
-        int i = 0;
-        List<Follower> followersList = followers.entrySet().
-                stream().map(Map.Entry::getValue).collect(Collectors.toList());
+    public static Candidate getCandidate(Follower mainFollower, List<Follower> followersList) throws IOException, InterruptedException {
+        int[] electionTimeouts = new int[followersList.size() + 1];
 
-        for (Map.Entry<String, Follower> follower : followers.entrySet()) {
-            electionTimeouts[i++] = follower.getValue().getRemainingElectionTimeout();
+        electionTimeouts[0] = mainFollower.getRemainingElectionTimeout();
+        int i = 1;
+        for (Follower follower : followersList) {
+            electionTimeouts[i++] = follower.getRemainingElectionTimeout();
         }
         int minTimeIndex = findMinElectionTimeIndex(electionTimeouts);
 
-        return new Candidate(followersList.get(minTimeIndex).getIp(),
-                followersList.get(minTimeIndex).getPort());
+        if(followersList.get(minTimeIndex).getConnectedSockets().isEmpty())
+        {
+            return new Candidate(mainFollower.getConnectedSockets());
+        }
+
+        return new Candidate(followersList.get(minTimeIndex).getConnectedSockets());
     }
 
     /**
