@@ -11,9 +11,10 @@ import java.util.List;
  */
 public class RaftUtils {
     public static final String REQUEST_VOTE = "REQUEST_VOTE";
-    public static final String VOTE = "VOTE";
+    public static final String VOTE = "Vote is processed";
     public static final String LEADER_QUITS = "LEADER_QUITS";
-    public static final String LEADER_ELECTED = "LEADER_ELECTED";
+    public static final String LEADER_ELECTED = "Leader is elected";
+    public static final String SHOW_LOG = "LOG";
 
     public static final String DELETE_ENTRY = "DEL ||";
     public static final String ADD_ENTRY = "ADD ||";
@@ -22,8 +23,7 @@ public class RaftUtils {
      * Returns a proportion (n out of a total) as a percentage, in a float.
      */
     public static float getPercentage(int n, int total) {
-        if(total == 0)
-        {
+        if (total == 0) {
             return 100;
         }
 
@@ -44,8 +44,7 @@ public class RaftUtils {
         }
         int minTimeIndex = findMinElectionTimeIndex(electionTimeouts);
 
-        if(followersList.get(minTimeIndex).getConnectedSockets().isEmpty())
-        {
+        if (followersList.get(minTimeIndex).getConnectedSockets().isEmpty()) {
             return new Candidate(mainFollower.getConnectedSockets());
         }
 

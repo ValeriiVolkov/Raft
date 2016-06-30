@@ -22,6 +22,11 @@ public class Follower extends Node {
         super(port);
     }
 
+    /**
+     * Starts a follower
+     * @throws IOException
+     * @throws InterruptedException
+     */
     public void start() throws IOException, InterruptedException {
         System.out.println("Follower starts...");
         socketMap = new HashMap<>();
@@ -45,6 +50,11 @@ public class Follower extends Node {
         outStream.write(getLog().toString().getBytes(CHARSET));
     }
 
+    /**
+     * Starts server node
+     * @throws IOException
+     * @throws InterruptedException
+     */
     public void startServer() throws IOException, InterruptedException {
         serverSocket = new ServerSocket(port);
         startElectionTime();

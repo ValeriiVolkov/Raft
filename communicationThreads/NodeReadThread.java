@@ -26,6 +26,9 @@ public class NodeReadThread extends Thread {
         this.follower = follower;
     }
 
+    /**
+     * Runs a thread for node to read input from connected sockets
+     */
     public void run() {
         while (socket.isConnected()) {
             try {
@@ -38,7 +41,7 @@ public class NodeReadThread extends Thread {
                     System.arraycopy(readBuffer, 0, arrayBytes, 0, size);
                     String message = new String(arrayBytes, CHARSET);
                     follower.receiveMessage(message);
-                    follower.sendToAllConnectedNodes(message);
+                    follower.sendToAllConnectedNodes(follower.getLastLogEntry());
 
                     if (!message.contains(RaftUtils.REQUEST_VOTE)) {
                         System.out.println(message);
@@ -65,6 +68,11 @@ public class NodeReadThread extends Thread {
         }
     }
 
+    /**
+     * Handles votes recieved from voting nodes
+     * @param s
+     * @throws IOException
+     */
     public void handleVote(String s) throws IOException {
         if (s.contains(RaftUtils.REQUEST_VOTE)) {
             socket.getOutputStream().write(RaftUtils.VOTE.getBytes(CHARSET));
@@ -73,6 +81,11 @@ public class NodeReadThread extends Thread {
         }
     }
 
+    /**
+     * Handles leader's exit
+     * @param message
+     * @return
+     */
     public boolean handleStop(String message) {
         if (message.toUpperCase().contains(RaftUtils.LEADER_QUITS)) {
             System.out.println("Leaders quits");

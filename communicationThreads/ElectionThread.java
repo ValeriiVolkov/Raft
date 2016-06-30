@@ -4,6 +4,8 @@ import java.util.Random;
 
 /**
  * Created by Valerii Volkov on 30.06.2016.
+ *
+ * Election thread starts election timeout for each node within a system
  */
 public class ElectionThread extends Thread {
     private int electionTimeout;//time a follower waits until becoming a candidate
@@ -15,6 +17,9 @@ public class ElectionThread extends Thread {
         electionTimeout = random.nextInt(30);
     }
 
+    /**
+     * Runs a thread, which processed election timeout
+     */
     public void run() {
         for (int i = 0; i < electionTimeout; ++i) {
             try {
@@ -30,10 +35,17 @@ public class ElectionThread extends Thread {
         }
     }
 
+    /**
+     * Returns remaining election timeout for a node
+     * @return
+     */
     public Integer getRemainingTime() {
         return remainingElectionTimeout;
     }
 
+    /**
+     * Reduces election timeout and returns it to initial value if it is over
+     */
     public void reduceRemainingElectionTimeout() {
         if (remainingElectionTimeout == 0) {
             remainingElectionTimeout = electionTimeout;

@@ -24,7 +24,7 @@ public class LeaderElection {
     public static boolean isLeaderElected = false;
 
     /**
-     * Constructor adds nodes, which are already within a system
+     * Constructor adds nodes, which are already within a system, starts election
      */
     public LeaderElection(ServerSocket serverSocket, List<Socket> sockets) {
         this.socketList = sockets;
@@ -42,6 +42,11 @@ public class LeaderElection {
         }
     }
 
+    /**
+     * Starts leader election
+     * @throws IOException
+     * @throws InterruptedException
+     */
     public void start() throws IOException, InterruptedException {
         System.out.println("Leader election is started...");
 
@@ -60,8 +65,10 @@ public class LeaderElection {
                 candidate.requestVote();
             }
         }
+
+        //To eliminate loosed votes
         Thread.sleep(4000);
-        //TODO If a leader is not elected
+
         if (!candidate.isLeader()) {
             System.out.println("Leader is not elected. Please, re-run the system");
             System.exit(0);
@@ -74,8 +81,14 @@ public class LeaderElection {
 
         System.out.println("Leader is elected. Please write the " +
                 "input for the document and press ENTER to commit it");
+        System.out.println("Input LOG to see the log of the leader");
+        System.out.println("Input DEL to delete some portion of text in the document");
     }
 
+    /**
+     * Returns true if leader is already elected
+     * @return
+     */
     public boolean isLeaderElected() {
         for (Follower f : followerList) {
             if (f.getLog().indexOf(LEADER_ELECTED) != -1) {
