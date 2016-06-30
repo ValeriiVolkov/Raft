@@ -109,6 +109,7 @@ public class Node {
                         if (inputMessage != null && inputMessage.length() > 0) {
                             synchronized (inputMessage) {
                                 socket.getOutputStream().write(inputMessage.getBytes(CHARSET));
+                                sendToAllConnectedNodes(inputMessage);
                                 sleep(SLEEP_TIME);
                             }
                         }

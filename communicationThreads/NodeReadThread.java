@@ -38,13 +38,15 @@ public class NodeReadThread extends Thread {
                     System.arraycopy(readBuffer, 0, arrayBytes, 0, size);
                     String message = new String(arrayBytes, CHARSET);
                     follower.receiveMessage(message);
+                    follower.sendToAllConnectedNodes(message);
 
-                    System.out.println(message);
+                    if (!message.contains(RaftUtils.REQUEST_VOTE)) {
+                        System.out.println(message);
+                    }
 
                     synchronized (message) {
                         handleVote(message);
-                        if(handleStop(message))
-                        {
+                        if (handleStop(message)) {
                             follower.sendToAllConnectedNodes(RaftUtils.LEADER_QUITS);
                             interrupt();
                             return;
